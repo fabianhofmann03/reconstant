@@ -233,6 +233,34 @@ class DartOutputer (Outputer):
             raise Exception(f"Internal error - unsupported constant type: {type(constant.value)}")
 
 
+class VhdlOutputer (Outputer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(comment_mark="--", comment_indentation=1, *args, **kwargs)
+
+    def output_header(self):
+        super().output_header()
+        pkg_name = os.path.splitext(os.path.basename(self.path))[0]
+        self._output.write(f"\npackage {pkg_name} is\n")
+
+    def output_footer(self):
+        super().output_footer()
+        self._output.write("\nend package;\n")
+
+    def output_enum(self, enum : Enum):
+        separator = ',\n\t\t'
+        self._output.write(f"\ttype {enum.name} is (\n\t\t{separator.join([val for val in enum.values])}\n\t);\n")
+
+    def output_constant(self, constant: Constant):
+        name = inflection.underscore(constant.name).upper()
+        if type(constant.value) == str:
+            self._output.write(f'\tconstant {name} : string := "{constant.value}";\n')
+        elif type(constant.value) == int:
+            self._output.write(f'\tconstant {name} : integer := {constant.value};\n')
+        else:
+            raise Exception(f"Internal error - unsupported constant type: {type(constant.value)}")
+
+
 class AllOutputs (BaseModel):
     python: Python3Outputer = None
     python2: Python2Outputer = None
@@ -243,6 +271,7 @@ class AllOutputs (BaseModel):
     rust: RustOutputer = None
     r: ROutputer = None
     dart: DartOutputer = None
+    vhdl: VhdlOutputer = None
 
 
 class RootConfig (BaseModel):
