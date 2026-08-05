@@ -205,14 +205,14 @@ class JavaOutputer (Outputer):
     def output_enum(self, enum : Enum):
         self._output.write(f"\tpublic enum {enum.name} {'{'}\n")
         super().output_enum(enum)
-        self._output.write(f"""\t\tprivate final int value;
-\t\t{enum.name}"""+"""(int value) {
-\t\t\tthis.value = value;
-\t\t}
-\t\tpublic int getValue() {
-\t\t\treturn this.value;
-\t\t}
-\t}\n\n""")
+        self._output.write( """\t\tprivate final int value;\n"""
+                           f"""\t\t{enum.name}""" """(int value) {\n"""
+                            """\t\t\tthis.value = value;\n"""
+                            """\t\t}\n"""
+                            """\t\tpublic int getValue() {\n"""
+                            """\t\t\treturn this.value;\n"""
+                            """\t\t}\n"""
+                            """\t}\n\n""")
         #self._output.write( {separator.join([val.name for val in enum.values])}\n\t}}\n")
 
     def output_constant(self, constant: Constant):
