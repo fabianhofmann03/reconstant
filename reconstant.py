@@ -72,7 +72,7 @@ class Outputer (BaseModel):
         return f"{value_identifier.enum_name}.{value_identifier.value_name}"
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
-        self._output.write(f"")
+        return ""
 
     def output_enum(self, enum: Enum):
         # The value that will be added to the last explicit value (or 0 in case there is no explicit)
@@ -108,7 +108,9 @@ class Outputer (BaseModel):
                 new_ref = EnumValueReference(enum_name=enum.name, value_name=value.name)
                 new_ref._value = output_value
                 self._buffered_enum_values.append(new_ref)
-            self.formatEnumEntry(enum.name, value.name, output_value, i == 0, i == len(enum.values) - 1)
+            self._output.write(
+                self.formatEnumEntry(enum.name, value.name, output_value, i == 0, i == len(enum.values) - 1)
+            )
 
     def output_comment(self, comment):
         indent = '\t' * self._comment_indentation
@@ -136,9 +138,9 @@ class Python2Outputer (Outputer):
         return f"{inflection.underscore(value_identifier.enum_name).upper()}_{value_identifier.value_name}"
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
-            enum_name = inflection.underscore(enum_name).upper()
-            enum_value_name = inflection.underscore(enum_value_name).upper()
-            self._output.write(f"{enum_name}_{enum_value_name}={enum_value}\n")
+        enum_name = inflection.underscore(enum_name).upper()
+        enum_value_name = inflection.underscore(enum_value_name).upper()
+        return f"{enum_name}_{enum_value_name}={enum_value}\n"
 
 class Python3Outputer (Outputer):
         
@@ -150,7 +152,7 @@ class Python3Outputer (Outputer):
         return f"{value_identifier.enum_name}.{value_identifier.value_name}.value"
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
-        self._output.write(f"\t{enum_value_name}={enum_value}\n")
+        return f"\t{enum_value_name}={enum_value}\n"
 
     def output_enum(self, enum : Enum):
         self._output.write(f"class {enum.name}(Enum):\n")
@@ -164,7 +166,7 @@ class JavascriptOutputer (Outputer):
         super().__init__(comment_mark="//", *args, **kwargs)
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
-            self._output.write(f"\t{enum_value_name}:{enum_value},\n")
+        return f"\t{enum_value_name}:{enum_value},\n"
 
     def output_enum(self, enum : Enum):
         self._output.write(f"export const {enum.name} = {{\n")
@@ -198,7 +200,7 @@ class JavaOutputer (Outputer):
         return os.path.basename(self.path).replace(".java", "")
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
-        self._output.write(f"\t\t{enum_value_name}({enum_value}){';' if islast else ','}\n")
+        return f"\t\t{enum_value_name}({enum_value}){';' if islast else ','}\n"
 
     def output_enum(self, enum : Enum):
         self._output.write(f"\tpublic enum {enum.name} {'{'}\n")
@@ -230,7 +232,7 @@ class RustOutputer (Outputer):
         return f"{value_identifier.enum_name}::{value_identifier.value_name}"
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
-                    self._output.write(f"\t{enum_value_name}={enum_value},\n")
+        return f"\t{enum_value_name}={enum_value},\n"
 
     def output_enum(self, enum : Enum):
         self._output.write(f"pub enum {enum.name} {'{'}\n")
@@ -271,7 +273,7 @@ class COutputer (Outputer):
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
         enum_name = inflection.underscore(enum_name).upper()
         enum_value_name = inflection.underscore(enum_value_name).upper()
-        self._output.write(f"\t{enum_name}_{enum_value_name}={enum_value},\n")
+        return f"\t{enum_name}_{enum_value_name}={enum_value},\n"
 
     def output_enum(self, enum : Enum):
         self._output.write("typedef enum {\n")
@@ -314,7 +316,7 @@ class ROutputer (Outputer):
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
         enum_name = inflection.underscore(enum_name).upper()
         enum_value_name = inflection.underscore(enum_value_name).upper()
-        self._output.write(f"{enum_name}_{enum_value_name} <- {enum_value}\n")
+        return f"{enum_name}_{enum_value_name} <- {enum_value}\n"
 
     def output_enum(self, constant : Constant):
         super().output_enum(constant)
@@ -344,7 +346,7 @@ class DartOutputer (Outputer):
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
         # Convert enum values to lowercase for more Dart-like style
-        self._output.write(f"\t{enum_value_name.lower()}({enum_value}){';' if islast else ','}\n")
+        return f"\t{enum_value_name.lower()}({enum_value}){';' if islast else ','}\n"
 
     def output_enum(self, enum: Enum):
         self._output.write(f"enum {enum.name} {{\n")
@@ -382,7 +384,7 @@ class VhdlOutputer (Outputer):
 
     def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
         # Convert enum values to lowercase for more Dart-like style
-        self._output.write(f"\t\t{enum_value_name}{'' if islast else ','}\n")
+        return f"\t\t{enum_value_name}{'' if islast else ','}\n"
 
     def output_enum(self, enum : Enum):
         self._output.write(f"\ttype {enum.name} is (\n")
