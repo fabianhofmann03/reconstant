@@ -7,11 +7,14 @@ OTHER_CONSTANT = 42
 
 # enums
 class SomeEnum(EnumInt):
-	A = 0
-	B = 1
-	C = 2
+	A=0
+	B=1
+	C=2
 
 class OtherEnum(EnumInt):
-	FOO = 0
-	BAR = 1
+	FOO=0
+	BAR=1
+	BAZ=2
+	QUUX=5
+	CORGE=6
 

@@ -13,7 +13,10 @@ enums:
 - name: OtherEnum
   values:
     - FOO
-    - BAR
+    - BAR:SomeEnum::B
+    - BAZ
+    - QUUX:5
+    - CORGE
 
 outputs:
   python:
