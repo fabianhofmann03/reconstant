@@ -15,30 +15,30 @@ class EnumValueReference (BaseModel):
 
 class EnumValue (BaseModel):
     name: str
-    value: int | EnumValueReference | None = None
+    value_enum: EnumValueReference | None = None
+    value_str: str | None = None
+    value_int: int | None = None
     
     @model_validator(mode="before")
     @classmethod
     def convert_string_to_dict(cls, data):
         if isinstance(data, str):
-            match = re.search(r'^([\w\-_]+)(?::([\w\-_]+)(?:::([\w\-_]+))?)?$', data)
-            if (not match):
-                raise Exception("Enum value could not be parsed: " + data)
-            result = { "name": match.group(1) }
-            if match.group(2) is not None:
-                if isint(match.group(2)):
-                    if match.group(3) is not None:
-                        raise Exception("Number was used as a Enum name: " + data)
-                    # Set enum value to integer
-                    result["value"] = int(match.group(2))
-                else:
-                    if match.group(3) is None:
-                        raise Exception("Enum name was given, but no enum value: " + data)
-                    # Set enum value to reference of another enum
-                    result["value"] = {
+            if (match := re.search(r'^([\w\-_]+)(?::(?:(?:([\w\-_]+)::([\w\-_]+))|(?:\"([^"]*)\")|([0-9]+)))?$', data)):
+                result = { "name": match.group(1) }
+                if match.group(2) is not None:
+                    # Value is Enum
+                    result["value_enum"] = {
                         "enum_name": match.group(2),
                         "value_name": match.group(3)
                     }
+                elif match.group(4) is not None:
+                    # Value is string
+                    result["value_str"] = match.group(4)
+                elif match.group(5) is not None:
+                    # Value is int
+                    result["value_int"] = int(match.group(5))
+            else:
+                raise Exception("Enum value could not be parsed: " + data)
             return result
         return data
 
@@ -80,7 +80,9 @@ class Outputer (BaseModel):
         # The last value that was explicitly given by the user
         last_explicit_value : str | int | EnumValueReference | None = None
         for (i, value) in enumerate(enum.values):
-            enum_value = value.value    # The value the enum value is supposed to represent
+            # The value the enum value is supposed to represent,
+            # split into three seperate variables so pydantic would not confuse a "123" string with 123 int
+            enum_value = value.value_enum or value.value_int or value.value_str
             output_value = 0
             if enum_value is None:
                 if last_explicit_value is None:   # Set to iterator_value
@@ -88,6 +90,8 @@ class Outputer (BaseModel):
                 else:   # Set to the last specified value + iterator_value
                     if type(last_explicit_value) == int:
                         output_value = last_explicit_value + iterator_value
+                    if type(last_explicit_value) == str:
+                        print("Cannot infer next value of string!")
                     if type(last_explicit_value) == EnumValueReference:
                         output_value = self.getEnumValue(enum_value) + f' + {iterator_value}'
                 iterator_value += 1
@@ -101,13 +105,17 @@ class Outputer (BaseModel):
                     else:
                         output_value = self.getEnumValue(enum_value)
                 else:
+                    # Strings and ints can just be set
                     output_value = enum_value
                 last_explicit_value = enum_value
                 iterator_value = 1
+            # Only int enums will be buffered
             if type(output_value) == int:
                 new_ref = EnumValueReference(enum_name=enum.name, value_name=value.name)
                 new_ref._value = output_value
                 self._buffered_enum_values.append(new_ref)
+            if type(output_value) == str:
+                output_value = "\"" + output_value + "\""
             self._output.write(
                 self.formatEnumEntry(enum.name, value.name, output_value, i == 0, i == len(enum.values) - 1)
             )
@@ -177,6 +185,21 @@ class JavascriptOutputer (Outputer):
     def output_constant(self, constant: Constant):
         return super().output_constant(constant, prefix="export const ")
 
+class TypescriptOutputer (Outputer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(comment_mark="//", *args, **kwargs)
+
+    def formatEnumEntry(self, enum_name: str, enum_value_name: str, enum_value: int | str, isfirst:bool, islast:bool):
+        return f"\t{enum_value_name} = {enum_value},\n"
+
+    def output_enum(self, enum : Enum):
+        self._output.write(f"export enum {enum.name} {{\n")
+        super().output_enum(enum)
+        self._output.write(f"}}\n")
+
+    def output_constant(self, constant: Constant):
+        return super().output_constant(constant, prefix="export const ")
 
 class JavaOutputer (Outputer):
 
@@ -406,6 +429,7 @@ class AllOutputs (BaseModel):
     python: Python3Outputer = None
     python2: Python2Outputer = None
     javascript: JavascriptOutputer = None
+    typescript: TypescriptOutputer = None
     vue: VueMixinOutputer = None
     c: COutputer = None
     java: JavaOutputer = None
